@@ -7,7 +7,6 @@
 
 > [!WARNING]
 > This project has never been published to GitCode. If you find it there, please take a screenshot as evidence.
-> (本项目从未发布至 GitCode，如您发现请截图并保留证据)
 
 Turn your smartphone into a high-quality wireless webcam for your PC.
 
