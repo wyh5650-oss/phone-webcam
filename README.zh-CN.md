@@ -14,8 +14,6 @@
 
 PhoneWebcam 是一款强大的工具，可以通过 Wi-Fi 将手机画面低延迟地传输到电脑。它内置了虚拟摄像头驱动，让您可以在 Zoom、Teams、OBS 等软件中直接使用手机画面作为视频源。
 
-![Screenshot](docs/screenshot.png)
-
 ## ✨主要功能
 
 - **无线低延迟**：通过 WebRTC 和 Socket.IO 在局域网内进行实时传输。
