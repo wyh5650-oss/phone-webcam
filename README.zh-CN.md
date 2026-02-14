@@ -1,4 +1,4 @@
-# PhoneWebcam (手机摄像头) 📱🎥
+# 电脑手机虚拟摄像头
 
 ![GitHub stars](https://img.shields.io/github/stars/yourusername/phone-webcam)
 ![GitHub forks](https://img.shields.io/github/forks/yourusername/phone-webcam)
