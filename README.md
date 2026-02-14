@@ -20,7 +20,6 @@ PhoneWebcam is a powerful tool that streams your phone's camera to your computer
 - **Virtual Camera Support**: Native C++ driver allows the video feed to be recognized as a standard webcam by Windows.
 - **High Quality**: Supports resolutions up to 4K and adjustable bitrates.
 - **Frame Rate Control**: Choose from 15, 24, 30, or 60 FPS.
-- **Ambient Mode**: Immersive blurred background fills empty space when rotating the phone.
 - **Bilingual UI**: Full support for English and Chinese.
 - **Secure**: Data stays on your local network.
 
