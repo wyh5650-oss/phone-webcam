@@ -1,0 +1,42 @@
+{
+    "app": {
+        "title": "手机摄像头",
+        "language": "语言"
+    },
+    "receiver": {
+        "scan_to_connect": "扫描二维码连接设备",
+        "waiting": "等待连接...",
+        "socket_disconnected": "Socket 已断开",
+        "connection_error": "连接错误",
+        "connecting": "正在协商连接...",
+        "connected": "视频流已激活",
+        "connection_lost": "连接丢失",
+        "handshake_failed": "握手失败",
+        "live": "直播",
+        "resolution": "分辨率",
+        "bitrate": "码率",
+        "rotate": "旋转",
+        "vcam": "虚拟相机",
+        "vcam_on": "虚拟相机开启",
+        "logs": "系统日志",
+        "close": "关闭",
+        "loading_url": "加载中...",
+        "vcam_fps": "虚拟相机帧率"
+    },
+    "sender": {
+        "initializing": "正在初始化...",
+        "ready": "就绪",
+        "disconnected": "已断开",
+        "live": "直播中",
+        "connection_failed": "连接失败",
+        "connecting": "连接中...",
+        "close": "关闭",
+        "fullscreen": "全屏"
+    },
+    "bitrates": {
+        "standard": "标准",
+        "high": "高画质",
+        "max": "最高画质",
+        "custom": "自定义"
+    }
+}

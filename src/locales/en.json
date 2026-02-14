@@ -1,0 +1,42 @@
+{
+    "app": {
+        "title": "Phone Webcam",
+        "language": "Language"
+    },
+    "receiver": {
+        "scan_to_connect": "Scan to connect your device",
+        "waiting": "Waiting for connection...",
+        "socket_disconnected": "Socket disconnected",
+        "connection_error": "Connection error",
+        "connecting": "Negotiating connection...",
+        "connected": "Stream Active",
+        "connection_lost": "Connection lost",
+        "handshake_failed": "Handshake failed",
+        "live": "LIVE",
+        "resolution": "RESOLUTION",
+        "bitrate": "BITRATE",
+        "rotate": "Rotate",
+        "vcam": "VCam",
+        "vcam_on": "VCam ON",
+        "logs": "System Logs",
+        "close": "Close",
+        "loading_url": "Loading...",
+        "vcam_fps": "VCam FPS"
+    },
+    "sender": {
+        "initializing": "Initializing...",
+        "ready": "Ready",
+        "disconnected": "Disconnected",
+        "live": "Live",
+        "connection_failed": "Connection Failed",
+        "connecting": "Connecting...",
+        "close": "Close",
+        "fullscreen": "Fullscreen"
+    },
+    "bitrates": {
+        "standard": "Standard",
+        "high": "High",
+        "max": "Max",
+        "custom": "Custom"
+    }
+}
