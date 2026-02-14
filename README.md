@@ -14,8 +14,6 @@ Turn your smartphone into a high-quality wireless webcam for your PC.
 
 PhoneWebcam is a powerful tool that streams your phone's camera to your computer via Wi-Fi with low latency. It includes a virtual camera driver, allowing you to use your phone as a video source in Zoom, Teams, OBS, and other applications.
 
-![Screenshot](docs/screenshot.png)
-
 ## ✨ Features
 
 - **Wireless & Low Latency**: Real-time streaming using WebRTC and Socket.IO over local Wi-Fi.
