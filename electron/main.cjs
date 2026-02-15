@@ -1,6 +1,8 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-const { fork } = require('child_process');
+// child_process 不需要了，但保留以防万一，暂不删除，或删除它。
+// Actually remove it to be clean.
+
 
 const isPackaged = app.isPackaged;
 
@@ -22,6 +24,11 @@ let fn_rgba_to_bgr_flip = null;
 
 // 预分配原生 BGR 缓冲区
 let bgrBuffer = null;
+
+// 性能监控
+let droppedFrames = 0;
+let processedFrames = 0;
+let lastStatsTime = Date.now();
 
 global.serverUrl = null;
 
@@ -99,6 +106,7 @@ function createWindow() {
     mainWindow = new BrowserWindow({
         width: 800,
         height: 600,
+        show: false, // 先不显示，等加载完成后再显示
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: false,
@@ -127,29 +135,24 @@ function createWindow() {
         if (global.serverUrl) {
             mainWindow.webContents.send('server-url', global.serverUrl);
         }
+        // 加载完成后显示窗口
+        mainWindow.show();
     });
 }
 
+const { runServer } = require('../server/server.cjs');
+
 function startServer() {
-    const serverPath = isPackaged
-        ? path.join(process.resourcesPath, 'server/server.cjs')
-        : path.join(__dirname, '../server/server.cjs');
+    // 在打包环境中，dist 位于 resources (如果 extraResources) 或者 app.asar (如果 files)
+    // 根据新的策略，我们将 server 和 dist 都打包进 app.asar
+    // 所以路径应该是 __dirname/../dist
+    const distPath = path.join(__dirname, '../dist');
 
-    serverProcess = fork(serverPath, [], {
-        env: {
-            ...process.env,
-            NODE_ENV: isPackaged ? 'production' : 'development'
-        }
-    });
-
-    serverProcess.on('message', (msg) => {
-        if (msg.type === 'server-url') {
-            console.log('Received Server URL:', msg.url);
-            global.serverUrl = msg.url;
-
-            if (mainWindow && !mainWindow.webContents.isLoading()) {
-                mainWindow.webContents.send('server-url', msg.url);
-            }
+    serverProcess = runServer(isPackaged, distPath, (url) => {
+        console.log('Server started, URL:', url);
+        global.serverUrl = url;
+        if (mainWindow && !mainWindow.webContents.isLoading()) {
+            mainWindow.webContents.send('server-url', url);
         }
     });
 }
@@ -172,19 +175,45 @@ app.whenReady().then(() => {
 
     // 高频帧数据：接收 RGBA，用原生 C 函数转 BGR 后发送
     ipcMain.on('vcam-frame', (_event, rgbaBuffer) => {
-        if (!scCamera || !fn_rgba_to_bgr_flip || !fn_scSendFrame || !bgrBuffer) return;
+        if (!scCamera || !fn_rgba_to_bgr_flip || !fn_scSendFrame || !bgrBuffer) {
+            droppedFrames++;
+            return;
+        }
+
+        const startTime = performance.now();
 
         try {
             const rgba = Buffer.from(rgbaBuffer);
             const expectedSize = vcamWidth * vcamHeight * 4; // RGBA = 4 bytes per pixel
 
             // Skip frames with mismatched size (happens during resolution transitions)
-            if (rgba.length !== expectedSize) return;
+            if (rgba.length !== expectedSize) {
+                droppedFrames++;
+                return;
+            }
 
             fn_rgba_to_bgr_flip(rgba, bgrBuffer, vcamWidth, vcamHeight);
             fn_scSendFrame(scCamera, bgrBuffer);
+
+            processedFrames++;
+
+            const processingTime = performance.now() - startTime;
+            if (processingTime > 16.67) { // 超过 60fps 的帧时间
+                console.warn(`[VCam] Slow frame: ${processingTime.toFixed(2)}ms`);
+            }
+
+            // 每 5 秒输出一次统计
+            const now = Date.now();
+            if (now - lastStatsTime > 5000) {
+                const fps = processedFrames / 5;
+                console.log(`[VCam] Stats: ${fps.toFixed(1)} fps, dropped: ${droppedFrames}`);
+                processedFrames = 0;
+                droppedFrames = 0;
+                lastStatsTime = now;
+            }
         } catch (err) {
-            // Silently skip bad frames — don't crash the entire process
+            droppedFrames++;
+            console.error('[VCam] Frame error:', err.message);
         }
     });
 
@@ -213,7 +242,7 @@ app.on('certificate-error', (event, webContents, url, error, certificate, callba
 
 app.on('will-quit', () => {
     stopVirtualCam();
-    if (serverProcess) {
-        serverProcess.kill();
+    if (serverProcess && serverProcess.close) {
+        serverProcess.close();
     }
 });

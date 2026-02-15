@@ -221,8 +221,15 @@ const Receiver = () => {
         }
     }
 
-    const handleRotate = () => {
-        setRotation(prev => (prev + 90) % 360)
+    const handleRotate = async () => {
+        const newRotation = (rotation + 90) % 360
+        setRotation(newRotation)
+
+        // 如果虚拟摄像头正在运行，重启以应用新旋转
+        if (vcamActiveRef.current) {
+            await stopVcamCapture()
+            setTimeout(() => startVcamCapture(newRotation), 100)
+        }
     }
 
     const handleQualityChange = (res) => {
@@ -258,17 +265,22 @@ const Receiver = () => {
         }
     }
 
-    const startVcamCapture = async () => {
+    const startVcamCapture = async (rotationAngle = rotation) => {
         if (!window.electronAPI || !videoRef.current) {
             log('[VCam] electronAPI or video not available')
             return
         }
 
         const video = videoRef.current
-        const w = video.videoWidth || 1280
-        const h = video.videoHeight || 720
+        const videoW = video.videoWidth || 1280
+        const videoH = video.videoHeight || 720
 
-        log(`[VCam] Starting ${w}x${h}...`)
+        // 90° 和 270° 需要交换宽高
+        const needSwap = rotationAngle === 90 || rotationAngle === 270
+        const w = needSwap ? videoH : videoW
+        const h = needSwap ? videoW : videoH
+
+        log(`[VCam] Starting ${w}x${h} (rotation: ${rotationAngle}°)...`)
         let ok = false
         try {
             ok = await window.electronAPI.startVirtualCam(w, h)
@@ -305,15 +317,26 @@ const Receiver = () => {
                 // Check video is still playing and has valid dimensions
                 if (video.readyState < 2 || video.videoWidth === 0) return
 
-                // If video dimensions changed, update canvas (without restarting vcam)
-                if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-                    // Only log once per resize
-                    log(`[VCam] Canvas resize: ${canvas.width}x${canvas.height} → ${video.videoWidth}x${video.videoHeight}`)
-                    canvas.width = video.videoWidth
-                    canvas.height = video.videoHeight
-                }
+                // 只在需要旋转时应用变换
+                if (rotationAngle !== 0) {
+                    ctx.save()
+                    ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+                    // 移动到画布中心
+                    ctx.translate(canvas.width / 2, canvas.height / 2)
+
+                    // 应用旋转
+                    ctx.rotate(rotationAngle * Math.PI / 180)
+
+                    // 绘制视频（中心对齐）
+                    ctx.drawImage(video, -video.videoWidth / 2, -video.videoHeight / 2,
+                                  video.videoWidth, video.videoHeight)
+
+                    ctx.restore()
+                } else {
+                    // 无旋转时直接绘制（最快路径）
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+                }
 
                 const rgba = ctx.getImageData(0, 0, canvas.width, canvas.height).data
                 window.electronAPI.sendFrame(rgba.buffer)

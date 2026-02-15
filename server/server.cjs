@@ -5,6 +5,8 @@ const { Server } = require('socket.io');
 const os = require('os');
 const cors = require('cors');
 const { createProxyMiddleware } = require('http-proxy-middleware');
+const path = require('path');
+
 
 const app = express();
 app.use(cors());
@@ -115,46 +117,54 @@ io.on('connection', (socket) => {
     });
 });
 
-// 代理配置：将非 API 请求转发给 Vite 开发服务器
-const isDev = process.env.NODE_ENV !== 'production';
+// 启动服务器函数
+function runServer(isPackaged, staticPath, callback) {
+    // 代理配置：将非 API 请求转发给 Vite 开发服务器
+    const isDev = !isPackaged;
 
-if (isDev) {
-    app.use('/', createProxyMiddleware({
-        target: 'http://localhost:5173',
-        changeOrigin: true,
-        ws: true, // 支持 WebSocket (HMR)
-        logLevel: 'error',
-        onError: (err, req, res) => {
-            // 静默处理 ECONNRESET（HMR 连接断开时触发）
-            if (err.code === 'ECONNRESET' || err.code === 'ECONNREFUSED') return;
-            console.error('[Proxy Error]', err.message);
+    if (isDev) {
+        app.use('/', createProxyMiddleware({
+            target: 'http://localhost:5173',
+            changeOrigin: true,
+            ws: true, // 支持 WebSocket (HMR)
+            logLevel: 'error',
+            onError: (err, req, res) => {
+                // 静默处理 ECONNRESET（HMR 连接断开时触发）
+                if (err.code === 'ECONNRESET' || err.code === 'ECONNREFUSED') return;
+                console.error('[Proxy Error]', err.message);
+            }
+        }));
+    } else {
+        // 生产环境托管构建文件
+        // staticPath 传入的是 dist 目录的绝对路径
+        app.use(express.static(staticPath));
+        app.get('*', (req, res) => {
+            res.sendFile(path.join(staticPath, 'index.html'));
+        });
+    }
+
+    // 防止未捕获的连接错误导致进程崩溃
+    process.on('uncaughtException', (err) => {
+        if (err.code === 'ECONNRESET' || err.code === 'ECONNREFUSED' || err.code === 'EPIPE') {
+            // 网络连接中断，静默忽略
+            return;
         }
-    }));
-} else {
-    // 生产环境托管构建文件
-    const staticPath = path.join(__dirname, '../dist');
-    app.use(express.static(staticPath));
-    app.get('*', (req, res) => {
-        res.sendFile(path.join(staticPath, 'index.html'));
+        console.error('[Uncaught Exception]', err);
     });
+
+    // 启动服务器
+    httpsServer.listen(PORT, '0.0.0.0', () => {
+        const ip = getLocalIP();
+        const url = `https://${ip}:${PORT}`;
+        console.log(`Server running at ${url}`);
+
+        if (callback) {
+            callback(url);
+        }
+    });
+
+    return httpsServer; // 返回 server 实例以便关闭
 }
 
-// 防止未捕获的连接错误导致进程崩溃
-process.on('uncaughtException', (err) => {
-    if (err.code === 'ECONNRESET' || err.code === 'ECONNREFUSED' || err.code === 'EPIPE') {
-        // 网络连接中断，静默忽略
-        return;
-    }
-    console.error('[Uncaught Exception]', err);
-});
+module.exports = { runServer };
 
-// 启动服务器
-httpsServer.listen(PORT, '0.0.0.0', () => {
-    const ip = getLocalIP();
-    const url = `https://${ip}:${PORT}`;
-    console.log(`Server running at ${url}`);
-
-    if (process.send) {
-        process.send({ type: 'server-url', url: url });
-    }
-});
